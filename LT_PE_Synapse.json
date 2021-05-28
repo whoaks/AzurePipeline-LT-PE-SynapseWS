@@ -1,0 +1,122 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "resources": [
+        // Creation of Virtual Network
+        {
+            "name"      : "LT-VNet",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/VNet.json"
+                }
+            }
+        },
+        // Creation of Subnet 
+        {
+            "name"      : "LT-Subnet",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'LT-VNet')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/Subnet.json"
+                }
+            }
+        },
+        // Creation of Data Lake Storage 
+        {
+            "name"      : "LT-Storage-Account",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/Storage_Account.json"
+                }
+            }
+        },
+        // Creation of Synapse WorkSpace
+        {
+            "name"      : "LT-Synapse-WS",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'LT-Storage-Account')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/Synapse_WS.json"
+                }
+            }
+        },
+        // Creation of dedicated SQL Pool
+        {
+            "name"      : "LT-Synapse-SQL-Pool",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'LT-Synapse-WS')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/SQL_Pool.json"
+                }
+            }
+        },
+        // Creation of Spark Pool
+        {
+            "name"      : "LT-Synapse-Spark-Pool",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'LT-Synapse-WS')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/Spark_Pool.json"
+                }
+            }
+        },
+        // Creation of Private DNS Zone
+        {
+            "name"      : "LT-Private-DNS",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'LT-VNet')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/Private_DNS.json"
+                }
+            }
+        },
+        // Creation of Private Endpoint
+        {
+            "name"      : "LT-Private-Endpoint",
+            "type"      : "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'LT-Private-DNS')]",
+                "[resourceId('Microsoft.Resources/deployments', 'LT-Synapse-WS')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "artifacts/Private_Endpoint.json"
+                }
+            }
+        } 
+    ]
+}
