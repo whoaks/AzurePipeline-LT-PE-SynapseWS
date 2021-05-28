@@ -1,0 +1,34 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VNet_Name": {
+            "type"        : "string",
+            "defaultValue": "VNet"
+        },
+        "Subnet_Name": {
+            "type"        : "string",
+            "defaultValue": "Subnet"
+        },
+        "Subnet_Address": {
+            "type"        : "string",
+            "defaultValue": "10.10.0.0/24"
+        },
+        "Subnet_PE_Network_Policy": {
+            "type"        : "string",
+            "defaultValue": "Disabled"
+        }
+    },
+    "resources": [
+        {
+            "type"      : "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2020-05-01",
+            "location"  : "[resourceGroup().location]",
+            "name"      : "[concat(parameters('VNet_Name'), '/' , parameters('Subnet_Name'))]",
+            "properties": {
+                "addressPrefix"                 : "[parameters('Subnet_Address')]",
+                "privateEndpointNetworkPolicies": "[parameters('Subnet_PE_Network_Policy')]"
+            }
+        }
+    ]
+}

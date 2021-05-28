@@ -1,0 +1,126 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "SA_Private_DNS_Name": {
+            "type"        : "array",
+            "defaultValue": ["privatelink.dfs.core.windows.net", "privatelink.blob.core.windows.net"]
+        },
+        "SA_Private_DNS_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "SA_Private_DNS_VNet_Name": {
+            "type"        : "array",
+            "defaultValue": ["dns-dfs-vnet", "dns-blob-vnet"]
+        },
+        "SA_Private_DNS_VNet_Registration": {
+            "type"        : "array",
+            "defaultValue": [false, false]
+        },
+        "SA_Private_DNS_VNet_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "Synapse_Private_DNS_Name": {
+            "type"        : "array",
+            "defaultValue": ["privatelink.sql.azuresynapse.net"]
+        },
+        "Synapse_Private_DNS_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "Synapse_Private_DNS_VNet_Name": {
+            "type"        : "array",
+            "defaultValue": ["dns-sql-vnet"]
+        },
+        "Synapse_Private_DNS_VNet_Registration": {
+            "type"        : "array",
+            "defaultValue": [false]
+        },
+        "Synapse_Private_DNS_VNet_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "VNet_Name": {
+            "type"        : "string",
+            "defaultValue": "VNet"
+        }
+    },
+    "resources": [
+        {
+            "type"      : "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name"      : "[parameters('SA_Private_DNS_Name')[copyIndex('DNSCopy')]]",
+            "location"  : "global",
+            "tags"      : "[parameters('SA_Private_DNS_Tags')]",
+            "copy": {
+                "name" : "DNSCopy",
+                "count": "[length(parameters('SA_Private_DNS_Name'))]",
+                "mode" : "Serial"
+            }
+        },
+        {
+            "type"      : "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name"      : "[concat(parameters('SA_Private_DNS_Name')[copyIndex('DNSVNetCopy')], '/', parameters('SA_Private_DNS_VNet_Name')[copyIndex('DNSVNetCopy')])]",
+            "location"  : "global",
+            "tags"      : "[parameters('SA_Private_DNS_VNet_Tags')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('SA_Private_DNS_Name')[copyIndex('DNSVNetCopy')])]"
+            ],
+            "properties": {
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('VNet_Name'))]"
+                },
+                "registrationEnabled": "[parameters('SA_Private_DNS_VNet_Registration')[copyIndex('DNSVNetCopy')]]"
+            },
+            "copy": {
+                "name" : "DNSVNetCopy",
+                "count": "[length(parameters('SA_Private_DNS_VNet_Name'))]",
+                "mode" : "Serial"
+            }
+        },
+        {
+            "type"      : "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2020-06-01",
+            "name"      : "[parameters('Synapse_Private_DNS_Name')[copyIndex('DNSCopy')]]",
+            "location"  : "global",
+            "tags"      : "[parameters('Synapse_Private_DNS_Tags')]",
+            "copy": {
+                "name" : "DNSCopy",
+                "count": "[length(parameters('Synapse_Private_DNS_Name'))]",
+                "mode" : "Serial"
+            }
+        },
+        {
+            "type"      : "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2020-06-01",
+            "name"      : "[concat(parameters('Synapse_Private_DNS_Name')[copyIndex('DNSVNetCopy')], '/', parameters('Synapse_Private_DNS_VNet_Name')[copyIndex('DNSVNetCopy')])]",
+            "location"  : "global",
+            "tags"      : "[parameters('Synapse_Private_DNS_VNet_Tags')]",
+            "dependsOn" : [
+                "[resourceId('Microsoft.Network/privateDnsZones', parameters('Synapse_Private_DNS_Name')[copyIndex('DNSVNetCopy')])]"
+            ],
+            "properties": {
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('VNet_Name'))]"
+                },
+                "registrationEnabled": "[parameters('Synapse_Private_DNS_VNet_Registration')[copyIndex('DNSVNetCopy')]]"
+            },
+            "copy": {
+                "name" : "DNSVNetCopy",
+                "count": "[length(parameters('Synapse_Private_DNS_VNet_Name'))]",
+                "mode" : "Serial"
+            }
+        }
+    ]
+}

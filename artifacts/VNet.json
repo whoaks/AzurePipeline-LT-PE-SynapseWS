@@ -1,0 +1,36 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VNet_Name": {
+            "type"        : "string",
+            "defaultValue": "VNet"
+        },
+        "VNet_Address": {
+            "type"        : "string",
+            "defaultValue": "10.10.0.0/16"
+        },
+        "VNet_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        }
+    },
+    "resources": [
+        {
+            "name"      : "[parameters('VNet_Name')]",
+            "type"      : "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "location"  : "[resourceGroup().location]",
+            "tags"      : "[parameters('VNet_Tags')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('VNet_Address')]"
+                    ]
+                }
+            }
+        }
+    ]
+}

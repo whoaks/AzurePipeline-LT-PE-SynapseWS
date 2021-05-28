@@ -1,0 +1,176 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "SA_PE_Name": {
+            "type"        : "array",
+            "defaultValue": ["pe-adls-dfs", "pe-adls-blob"]
+        },
+        "SA_PE_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "SA_PE_Service_Name": {
+            "type"        : "array",
+            "defaultValue": ["pe-adls-dfs-connection", "pe-adls-blob-connection"]
+        },
+        "SA_PE_SubResource_Name": {
+            "type"        : "array",
+            "defaultValue": ["dfs", "blob"]
+        },
+        "SA_PE_DNS_Zone_Config_Name": {
+            "type"        : "array",
+            "defaultValue": ["arm-config", "arm-config2"]
+        },
+        "Synapse_PE_Name": {
+            "type"        : "array",
+            "defaultValue": ["pe-synapsews-sql"]
+        },
+        "Synapse_PE_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "Synapse_PE_Service_Name": {
+            "type"        : "array",
+            "defaultValue": ["pe-synapsews-sql-connnection"]
+        },
+        "Synapse_PE_SubResource_Name": {
+            "type"        : "array",
+            "defaultValue": ["sql"]
+        },
+        "Synapse_PE_DNS_Zone_Config_Name": {
+            "type"        : "array",
+            "defaultValue": ["private-dns-zone-sql"]
+        },
+        "VNet_Name": {
+            "type"        : "string",
+            "defaultValue": "VNet"
+        },
+        "Subnet_Name": {
+            "type"        : "string",
+            "defaultValue": "Subnet"
+        },
+        "Storage_Account_Name": {
+            "type"        : "string",
+            "defaultValue": "staccount7384"
+        },
+        "SA_Private_DNS_Name": {
+            "type"        : "array",
+            "defaultValue": ["privatelink.dfs.core.windows.net", "privatelink.blob.core.windows.net"]
+        },
+        "Synapse_WS_Name": {
+            "type"        : "string",
+            "defaultValue": "whoaksws"
+        },
+        "Synapse_Private_DNS_Name": {
+            "type"        : "array",
+            "defaultValue": ["privatelink.sql.azuresynapse.net"]
+        }
+    },
+    "resources": [
+        {
+            "name"      : "[parameters('SA_PE_Name')[copyIndex('PECopy')]]",
+            "type"      : "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-06-01",
+            "location"  : "[resourceGroup().location]",
+            "tags"      : "[parameters('SA_PE_Tags')]",
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "name"      : "[parameters('SA_PE_Service_Name')[copyIndex('PECopy')]]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('Storage_Account_Name'))]",
+                            "groupIds"            : [ "[parameters('SA_PE_SubResource_Name')[copyIndex('PECopy')]]" ]
+                        }
+                    }
+                ],
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('VNet_Name'), parameters('Subnet_Name'))]"
+                },
+                "customDnsConfigs": []
+            },
+            "copy": {
+                "name" : "PECopy",
+                "count": "[length(parameters('SA_PE_Name'))]",
+                "mode" : "Serial"
+            }
+        },
+        {
+            "type"      : "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2020-06-01",
+            "name"      : "[concat(parameters('SA_PE_Name')[copyIndex('PECfgCopy')], '/' , 'default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('SA_PE_Name')[copyIndex('PECfgCopy')])]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name"      : "[parameters('SA_PE_DNS_Zone_Config_Name')[copyIndex('PECfgCopy')]]",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('SA_Private_DNS_Name')[copyIndex('PECfgCopy')])]"
+                        }
+                    }
+                ]
+            },
+            "copy": {
+                "name" : "PECfgCopy",
+                "count": "[length(parameters('SA_PE_DNS_Zone_Config_Name'))]",
+                "mode" : "Serial"
+            }
+        },
+        {
+            "name"      : "[parameters('Synapse_PE_Name')[copyIndex('PECopy')]]",
+            "type"      : "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-06-01",
+            "location"  : "[resourceGroup().location]",
+            "tags"      : "[parameters('Synapse_PE_Tags')]",
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "name"      : "[parameters('Synapse_PE_Service_Name')[copyIndex('PECopy')]]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Synapse/workspaces',parameters('Synapse_WS_Name'))]",
+                            "groupIds"            : [ "[parameters('Synapse_PE_SubResource_Name')[copyIndex('PECopy')]]" ]
+                        }
+                    }
+                ],
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('VNet_Name'), parameters('Subnet_Name'))]"
+                },
+                "customDnsConfigs": []
+            },
+            "copy": {
+                "name" : "PECopy",
+                "count": "[length(parameters('Synapse_PE_Name'))]",
+                "mode" : "Serial"
+            }
+        },
+        {
+            "type"      : "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2020-06-01",
+            "name"      : "[concat(parameters('Synapse_PE_Name')[copyIndex('PECfgCopy')], '/' , 'default')]",
+            "dependsOn" : [
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('Synapse_PE_Name')[copyIndex('PECfgCopy')])]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name"      : "[parameters('Synapse_PE_DNS_Zone_Config_Name')[copyIndex('PECfgCopy')]]",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('Synapse_Private_DNS_Name')[copyIndex('PECfgCopy')])]"
+                        }
+                    }
+                ]
+            },
+            "copy": {
+                "name" : "PECfgCopy",
+                "count": "[length(parameters('Synapse_PE_DNS_Zone_Config_Name'))]",
+                "mode" : "Serial"
+            }
+        }
+    ]
+}

@@ -1,0 +1,87 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Synapse_WS_Name": {
+            "type"        : "string",
+            "defaultValue": "whoaksws"
+        },
+        "Synapse_WS_Identity": {
+            "type"        : "string",
+            "defaultValue": "SystemAssigned"
+        },
+        "Synapse_WS_Tags": {
+            "type"        : "object",
+            "defaultValue": {
+                "Env": "Testing"
+            }
+        },
+        "Synapse_Username": {
+            "type"        : "string",
+            "defaultValue": "John"
+        },
+        "Synapse_Password": {
+            "type"        : "string",
+            "defaultValue": "Synapse_12345"
+        },
+        "Synapse_Firewall_Name": {
+            "type"        : "array",
+            "defaultValue": ["AllowAllWindowsAzureIps"]
+        },
+        "Synapse_Firewall_Start_IP_Address":{
+            "type"        : "array",
+            "defaultValue": ["0.0.0.0"]
+        },
+        "Synapse_Firewall_End_IP_Address":{
+            "type"        : "array",
+            "defaultValue":["0.0.0.0"]
+        },
+        "Storage_Account_Name": {
+            "type"        : "string",
+            "defaultValue": "staccount7384"
+        },
+        "Storage_Container_Name": {
+            "type"        : "string",
+            "defaultValue": "con-1"
+        }
+    },
+    "resources": [
+        {
+            "type"      : "Microsoft.Synapse/workspaces",
+            "apiVersion": "2020-12-01",
+            "name"      : "[parameters('Synapse_WS_Name')]",
+            "location"  : "[resourceGroup().location]",
+            "identity": {
+                "type": "[parameters('Synapse_WS_Identity')]"
+            },
+            "tags": "[parameters('Synapse_WS_Tags')]",
+            "properties": {
+                "defaultDataLakeStorage": {
+                    "accountUrl": "[concat('https://', parameters('Storage_Account_Name'), '.dfs.core.windows.net')]",
+                    "filesystem": "[parameters('Storage_Container_Name')]"
+                },
+                "sqlAdministratorLogin"        : "[parameters('Synapse_Username')]",
+                "sqlAdministratorLoginPassword": "[parameters('Synapse_Password')]"
+            }
+        },
+        {
+            "type"      : "Microsoft.Synapse/workspaces/firewallRules",
+            "apiVersion": "2020-12-01",
+            "name"      : "[concat(parameters('Synapse_WS_Name'), '/', parameters('Synapse_Firewall_Name')[copyIndex('SynapseFirewallCopy')])]",
+            "location"  : "[resourceGroup().location]",
+            "dependsOn" : [
+                "[resourceId('Microsoft.Synapse/workspaces', parameters('Synapse_WS_Name'))]"
+            ],
+            "properties": {
+                "startIpAddress": "[parameters('Synapse_Firewall_Start_IP_Address')[copyIndex('SynapseFirewallCopy')]]",
+                "endIpAddress"  : "[parameters('Synapse_Firewall_End_IP_Address')[copyIndex('SynapseFirewallCopy')]]"
+            },
+            "copy": {
+                "name" : "SynapseFirewallCopy",
+                "count": "[length(parameters('Synapse_Firewall_Name'))]",
+                "mode" : "Serial"
+            }
+        }
+    ],
+    "outputs": {}
+}
